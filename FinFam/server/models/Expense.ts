@@ -1,10 +1,13 @@
-import { pgTable, serial, text, integer, date } from 'drizzle-orm/pg-core';
-import { users } from './User';
+import { pgTable, serial, text, integer, timestamp } from 'drizzle-orm/pg-core';
+import { families } from './Family';
 
 export const expenses = pgTable('expenses', {
   id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  amount: integer('amount').notNull(),
-  date: date('date').notNull(),
-  userId: integer('user_id').references(() => users.id),
+  familyId: integer('family_id').notNull().references(() => families.id),
+  category: text('category').notNull(),
+  value: integer('value').notNull(),
+  date: timestamp('date').notNull(),
 });
+
+export type Expense = typeof expenses.$inferSelect; // return type when queried
+export type NewExpense = typeof expenses.$inferInsert; // insert type

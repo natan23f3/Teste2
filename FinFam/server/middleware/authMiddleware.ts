@@ -1,26 +1,28 @@
 import { Request, Response, NextFunction } from 'express';
-import passport from 'passport';
 
-// Define um tipo para o usuário com a propriedade 'role'
-interface User extends passport.User {
+// Define um tipo para o usuário com as propriedades necessárias
+export interface User {
+  id: number;
   role?: string;
+  name?: string;
+  email?: string;
 }
 
 // Estende a interface Request para incluir a propriedade 'user'
 export interface RequestWithUser extends Request {
   user?: User;
-  isAuthenticated(): boolean;
 }
 
+// Middleware para verificar a função do usuário
 export const checkRole = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!(req as RequestWithUser).isAuthenticated()) {
+  return (req: any, res: any, next: any) => {
+    // Verificar se o usuário está autenticado
+    if (!req.user) {
       return res.status(401).json({ message: 'Não autenticado' });
     }
 
-    const user = (req as RequestWithUser).user as User;
-
-    if (!user || !user.role || !roles.includes(user.role)) {
+    // Verificar se o usuário tem a função necessária
+    if (!req.user.role || !roles.includes(req.user.role)) {
       return res.status(403).json({ message: 'Não autorizado' });
     }
 

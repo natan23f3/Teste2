@@ -9,8 +9,16 @@
     "test": "jest --config ./jest.config.js --detectOpenHandles"
   },
   "dependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/connect-flash": "^0.0.40",
+    "@types/cors": "^2.8.19",
+    "@types/jsonwebtoken": "^9.0.9",
     "connect-flash": "^0.1.1",
+    "cors": "^2.8.5",
     "dotenv": "^16.5.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
