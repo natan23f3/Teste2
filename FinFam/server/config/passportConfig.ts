@@ -16,7 +16,7 @@ passport.use(new LocalStrategy(
         return done(null, false, { message: 'Email incorreto.' });
       }
 
-      const passwordMatch = await bcrypt.compare(password, user.senha);
+      const passwordMatch = await bcrypt.compare(password, user.password);
 
       if (!passwordMatch) {
         return done(null, false, { message: 'Senha incorreta.' });

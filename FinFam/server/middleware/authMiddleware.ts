@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthenticationError, AuthorizationError } from './errorMiddleware';
 
 // Define um tipo para o usuário com as propriedades necessárias
 export interface User {
@@ -15,17 +16,38 @@ export interface RequestWithUser extends Request {
 
 // Middleware para verificar a função do usuário
 export const checkRole = (roles: string[]) => {
-  return (req: any, res: any, next: any) => {
-    // Verificar se o usuário está autenticado
-    if (!req.user) {
-      return res.status(401).json({ message: 'Não autenticado' });
-    }
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userReq = req as RequestWithUser;
+      
+      // Verificar se o usuário está autenticado
+      if (!userReq.user) {
+        throw new AuthenticationError('Não autenticado');
+      }
 
-    // Verificar se o usuário tem a função necessária
-    if (!req.user.role || !roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Não autorizado' });
-    }
+      // Verificar se o usuário tem a função necessária
+      if (!userReq.user.role || !roles.includes(userReq.user.role)) {
+        throw new AuthorizationError('Não autorizado para esta operação');
+      }
 
-    next();
+      next();
+    } catch (error) {
+      next(error);
+    }
   };
+};
+
+// Middleware para garantir que o usuário está autenticado
+export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userReq = req as RequestWithUser;
+    
+    if (!userReq.user) {
+      throw new AuthenticationError('Não autenticado');
+    }
+    
+    next();
+  } catch (error) {
+    next(error);
+  }
 };

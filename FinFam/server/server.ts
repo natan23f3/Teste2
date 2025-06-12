@@ -11,6 +11,7 @@ import './config/passportConfig'; // Importa a configuração do Passport
 import flash from 'connect-flash';
 import helmet from 'helmet';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 
 // Carrega as variáveis de ambiente do arquivo .env
 dotenv.config();
@@ -35,11 +36,32 @@ app.use(helmet()); // Adiciona vários cabeçalhos HTTP de segurança
 
 // Configuração de CORS
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+
+// Configuração de rate limiting global
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // limite de 100 requisições por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Muitas requisições deste IP, tente novamente após 15 minutos'
+});
+
+// Aplicar rate limiting global
+app.use(globalLimiter);
+
+// Rate limiting específico para rotas de autenticação (mais restritivo)
+const authLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 10, // limite de 10 tentativas por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Muitas tentativas de login, tente novamente após 1 hora'
+});
 
 // Middleware para parsing de JSON
 app.use(express.json({ limit: '1mb' }));
@@ -61,7 +83,8 @@ app.use(session({
   cookie: {
     secure: isProduction, // Use HTTPS em produção
     httpOnly: true, // Previne ataques XSS
-    maxAge: 24 * 60 * 60 * 1000 // 24 horas
+    maxAge: 24 * 60 * 60 * 1000, // 24 horas
+    sameSite: 'strict' // Previne ataques CSRF
   }
 }));
 
@@ -70,7 +93,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
 
-// Rotas da API
+// Rotas da API com rate limiting específico para autenticação
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/expenses', expenseRoutes);

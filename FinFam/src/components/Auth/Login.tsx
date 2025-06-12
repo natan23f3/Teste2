@@ -1,27 +1,28 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../utils/api';
+import { useAuth } from '../../hooks/useAuth';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { login, error } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     try {
-      const response = await api.post('/auth/login', { email, senha });
-      const token = response.data.token;
-
-      // Salvar o token no localStorage
-      localStorage.setItem('token', token);
-
+      setIsSubmitting(true);
+      await login(email, senha);
+      
       // Redirecionar para a página de dashboard
       navigate('/dashboard');
-    } catch (error: any) {
-      console.error(error);
-      alert('Email ou senha incorretos.');
+    } catch (error) {
+      console.error('Erro durante o login:', error);
+      // O erro já está sendo tratado no contexto de autenticação
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -29,6 +30,7 @@ const Login = () => {
     <div>
       <h1>Login</h1>
       <form onSubmit={handleSubmit}>
+        {error && <div className="error-message">{error}</div>}
         <div>
           <label htmlFor="email">Email:</label>
           <input
@@ -37,6 +39,7 @@ const Login = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={isSubmitting}
           />
         </div>
         <div>
@@ -47,9 +50,12 @@ const Login = () => {
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             required
+            disabled={isSubmitting}
           />
         </div>
-        <button type="submit">Entrar</button>
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Entrando...' : 'Entrar'}
+        </button>
       </form>
     </div>
   );
