@@ -3,38 +3,45 @@ import { Card, CardHeader, CardContent, CardFooter } from '../UI/Card';
 import { Input } from '../UI/Input';
 import { Button } from '../UI/Button';
 import { DatePicker } from '../UI/DatePicker';
-import { useBudget } from '../../hooks/useBudget';
-import { Budget, CreateBudgetData, UpdateBudgetData } from '../../services/budgetService';
-import CategorySelector from './CategorySelector';
+import { useExpense } from '../../hooks/useExpense';
+import { Expense, CreateExpenseData, UpdateExpenseData } from '../../services/expenseService';
+import CategorySelector from '../BudgetForm/CategorySelector';
 
-interface BudgetFormProps {
-  budget?: Budget;
+// Estendendo a interface Expense para incluir descrição opcional
+interface ExtendedExpense extends Expense {
+  description?: string;
+}
+
+interface ExpenseFormProps {
+  expense?: ExtendedExpense;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-const BudgetForm: React.FC<BudgetFormProps> = ({
-  budget,
+const ExpenseForm: React.FC<ExpenseFormProps> = ({
+  expense,
   onSuccess,
   onCancel
 }) => {
-  const { createBudget, updateBudget, isCreating, isUpdating, createError, updateError } = useBudget();
+  const { createExpense, updateExpense, isCreating, isUpdating, createError, updateError } = useExpense();
   
   // Estado do formulário
   const [category, setCategory] = useState('');
   const [value, setValue] = useState('');
   const [date, setDate] = useState<Date>(new Date());
+  const [description, setDescription] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Preencher o formulário se estiver editando um orçamento existente
+  // Preencher o formulário se estiver editando uma despesa existente
   useEffect(() => {
-    if (budget) {
-      setCategory(budget.category);
-      setValue(budget.value.toString());
-      setDate(new Date(budget.date));
+    if (expense) {
+      setCategory(expense.category);
+      setValue(expense.value.toString());
+      setDate(new Date(expense.date));
+      setDescription(expense.description || '');
     }
-  }, [budget]);
+  }, [expense]);
 
   // Validar o formulário
   const validateForm = () => {
@@ -67,25 +74,27 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
     setIsSubmitting(true);
     
     try {
-      const budgetData = {
+      // Dados básicos da despesa (sem familyId, que será adicionado pelo hook)
+      const expenseData = {
         category,
         value: parseFloat(value),
         date: date.toISOString()
       };
       
-      if (budget) {
-        // Atualizar orçamento existente
-        await updateBudget(budget.id, budgetData as UpdateBudgetData);
+      if (expense) {
+        // Atualizar despesa existente
+        await updateExpense(expense.id, expenseData);
       } else {
-        // Criar novo orçamento
-        await createBudget(budgetData as CreateBudgetData);
+        // Criar nova despesa
+        await createExpense(expenseData);
       }
       
       // Limpar formulário após sucesso
-      if (!budget) {
+      if (!expense) {
         setCategory('');
         setValue('');
         setDate(new Date());
+        setDescription('');
       }
       
       // Chamar callback de sucesso
@@ -93,7 +102,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
         onSuccess();
       }
     } catch (error) {
-      console.error('Erro ao salvar orçamento:', error);
+      console.error('Erro ao salvar despesa:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -103,7 +112,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
     <Card className="max-w-md mx-auto">
       <CardHeader>
         <h2 className="text-xl font-semibold">
-          {budget ? 'Editar Orçamento' : 'Novo Orçamento'}
+          {expense ? 'Editar Despesa' : 'Nova Despesa'}
         </h2>
       </CardHeader>
       
@@ -149,11 +158,21 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
             )}
           </div>
           
+          {/* Descrição (opcional) */}
+          <div>
+            <Input
+              label="Descrição (opcional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Adicione detalhes sobre esta despesa"
+            />
+          </div>
+          
           {/* Erros da API */}
           {(createError || updateError) && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600">
-                Ocorreu um erro ao salvar o orçamento. Por favor, tente novamente.
+                Ocorreu um erro ao salvar a despesa. Por favor, tente novamente.
               </p>
             </div>
           )}
@@ -174,7 +193,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
             disabled={isSubmitting || isCreating || isUpdating}
             isLoading={isSubmitting || isCreating || isUpdating}
           >
-            {budget ? 'Atualizar' : 'Criar'} Orçamento
+            {expense ? 'Atualizar' : 'Registrar'} Despesa
           </Button>
         </CardFooter>
       </form>
@@ -182,4 +201,4 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
   );
 };
 
-export default BudgetForm;
+export default ExpenseForm;
