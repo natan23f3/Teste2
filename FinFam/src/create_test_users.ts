@@ -1,27 +1,27 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-import { users } from '../../drizzle/schema'; // Importe a tabela 'users' do seu schema
-import { randomUUID } from 'crypto';
+import bcrypt from 'bcrypt';
 
 async function createTestUsers() {
-  const pool = new Pool({
-    connectionString: 'postgresql://finfam_owner:npg_Mm8f1OCDNGUB@ep-late-bonus-a8w9igr4-pooler.eastus2.azure.neon.tech/finfam?sslmode=require',
-  });
+  const saltRounds = 10;
 
-  const db = drizzle(pool);
+  // Usuário administrador
+  const adminPassword = await bcrypt.hash('admin123', saltRounds);
+  const adminUser = {
+    nome: 'Administrador',
+    email: 'admin@finfam.com',
+    senha: adminPassword,
+    funcao: 'administrador',
+  };
+  console.log('Usuário Administrador:', JSON.stringify(adminUser));
 
-  try {
-    await db.insert(users).values([
-      { name: 'Test User 1', email: 'test1@example.com', password: 'password1' },
-      { name: 'Test User 2', email: 'test2@example.com', password: 'password2' },
-    ]);
-
-    console.log('Usuários de teste criados com sucesso!');
-  } catch (error) {
-    console.error('Erro ao criar usuários de teste:', error);
-  } finally {
-    await pool.end();
-  }
+  // Usuário familiar
+  const familiarPassword = await bcrypt.hash('familiar123', saltRounds);
+  const familiarUser = {
+    nome: 'Familiar',
+    email: 'familiar@finfam.com',
+    senha: familiarPassword,
+    funcao: 'familiar',
+  };
+  console.log('Usuário Familiar:', JSON.stringify(familiarUser));
 }
 
 createTestUsers();
