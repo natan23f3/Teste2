@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import passport from 'passport';
 import session from 'express-session';
+import lusca from 'lusca';
 import * as dotenv from 'dotenv';
 import './config/passportConfig'; // Importa a configuração do Passport
 import flash from 'connect-flash';
@@ -121,6 +122,9 @@ app.use(session({
     sameSite: 'strict' // Previne ataques CSRF
   }
 }));
+
+// Middleware de proteção contra CSRF
+app.use(lusca.csrf());
 
 // Configuração do Passport
 app.use(passport.initialize());
