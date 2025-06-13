@@ -7,12 +7,38 @@ import { useBudget } from '../../hooks/useBudget';
 import { Budget, CreateBudgetData, UpdateBudgetData } from '../../services/budgetService';
 import CategorySelector from './CategorySelector';
 
+/**
+ * @component BudgetForm
+ * @description Componente para criação e edição de orçamentos familiares.
+ * Este componente fornece um formulário completo para gerenciar orçamentos,
+ * incluindo validação de campos, feedback visual e integração com a API.
+ * 
+ * @example
+ * // Criar um novo orçamento
+ * <BudgetForm onSuccess={handleSuccess} onCancel={handleCancel} />
+ * 
+ * // Editar um orçamento existente
+ * <BudgetForm budget={budgetData} onSuccess={handleSuccess} onCancel={handleCancel} />
+ */
 interface BudgetFormProps {
+  /** Dados do orçamento para edição (opcional). Se não fornecido, o formulário será para criação */
   budget?: Budget;
+  /** Função de callback chamada após salvar com sucesso */
   onSuccess?: () => void;
+  /** Função de callback chamada quando o usuário cancela a operação */
   onCancel?: () => void;
 }
 
+/**
+ * Formulário de criação e edição de orçamentos
+ * 
+ * Este componente permite aos usuários criar novos orçamentos ou editar orçamentos existentes.
+ * Inclui validação de campos, feedback de erros e integração com o backend.
+ * 
+ * @param {Budget} [props.budget] - Orçamento existente para edição (opcional)
+ * @param {Function} [props.onSuccess] - Callback executado após salvar com sucesso
+ * @param {Function} [props.onCancel] - Callback executado quando o usuário cancela
+ */
 const BudgetForm: React.FC<BudgetFormProps> = ({
   budget,
   onSuccess,
@@ -27,7 +53,9 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Preencher o formulário se estiver editando um orçamento existente
+  /**
+   * Preenche o formulário com os dados do orçamento existente quando em modo de edição
+   */
   useEffect(() => {
     if (budget) {
       setCategory(budget.category);
@@ -36,7 +64,11 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
     }
   }, [budget]);
 
-  // Validar o formulário
+  /**
+   * Valida os campos do formulário
+   * 
+   * @returns {boolean} true se o formulário é válido, false caso contrário
+   */
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
@@ -58,7 +90,14 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Manipular envio do formulário
+  /**
+   * Manipula o envio do formulário
+   * 
+   * Valida os campos, cria ou atualiza o orçamento no backend,
+   * e executa o callback de sucesso se fornecido.
+   * 
+   * @param {React.FormEvent} e - Evento de submit do formulário
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

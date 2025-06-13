@@ -12,24 +12,37 @@ import flash from 'connect-flash';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import compression from 'compression';
+import http from 'http';
+import logger, { info, error } from './utils/logger';
+import { requestLogger, performanceMonitor, errorTracker } from './middleware/loggingMiddleware';
+import { cacheService } from './utils/cacheService';
+import { socketService } from './services/socketService';
 
 // Carrega as variáveis de ambiente do arquivo .env
 dotenv.config();
 
 // Verifica se as variáveis de ambiente necessárias estão definidas
 if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL não definida no arquivo .env');
+  error('DATABASE_URL não definida no arquivo .env');
   process.exit(1);
 }
 
 if (!process.env.SESSION_SECRET) {
-  console.error('SESSION_SECRET não definida no arquivo .env');
+  error('SESSION_SECRET não definida no arquivo .env');
+  process.exit(1);
+}
+if (!process.env.JWT_SECRET) {
+  error('JWT_SECRET não definida no arquivo .env');
   process.exit(1);
 }
 
 export const app = express();
 const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Criar servidor HTTP
+const server = http.createServer(app);
 
 // Configurações de segurança básicas
 app.use(helmet()); // Adiciona vários cabeçalhos HTTP de segurança
@@ -41,6 +54,27 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+
+// Adiciona middleware de compressão para reduzir o tamanho das respostas
+app.use(compression({
+  // Função para determinar se a resposta deve ser comprimida
+  filter: (req, res) => {
+    // Não comprimir se o cliente não aceitar compressão
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Usar a função padrão de filtro do middleware compression
+    return compression.filter(req, res);
+  },
+  // Nível de compressão (0-9, onde 9 é a maior compressão)
+  level: 6
+}));
+
+// Adiciona middleware de logging de requisições
+app.use(requestLogger);
+
+// Adiciona middleware de monitoramento de performance
+app.use(performanceMonitor(1000)); // 1000ms = 1s como limite
 
 // Configuração de rate limiting global
 const globalLimiter = rateLimit({
@@ -93,6 +127,13 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
 
+// Middleware para servir arquivos estáticos com cache
+app.use(express.static('public', {
+  maxAge: isProduction ? '1d' : 0, // 1 dia em produção, sem cache em desenvolvimento
+  etag: true,
+  lastModified: true
+}));
+
 // Rotas da API com rate limiting específico para autenticação
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
@@ -102,7 +143,11 @@ app.use('/api/expenses', expenseRoutes);
 
 // Rota de status
 app.get('/api/status', (req, res) => {
-  res.status(200).json({ status: 'online', version: '1.0.0' });
+  res.status(200).json({ 
+    status: 'online', 
+    version: '1.0.0',
+    cache: cacheService.getStats()
+  });
 });
 
 // Rota raiz
@@ -115,9 +160,12 @@ app.use((req, res, next) => {
   res.status(404).json({ message: 'Rota não encontrada' });
 });
 
+// Middleware de rastreamento de erros
+app.use(errorTracker);
+
 // Middleware de tratamento de erros
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error('Erro:', err);
+  // O erro já foi registrado pelo middleware errorTracker
   
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Erro interno do servidor';
@@ -129,12 +177,19 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
+// Inicializa o serviço de WebSockets
+socketService.initialize(server);
+
 // Exporta o app para testes
 export default app;
 
 // Inicia o servidor se não estiver em modo de teste
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(port, () => {
-    console.log(`Servidor rodando em http://localhost:${port}`);
+  server.listen(port, () => {
+    info(`Servidor rodando em http://localhost:${port}`, {
+      port,
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString()
+    });
   });
 }
