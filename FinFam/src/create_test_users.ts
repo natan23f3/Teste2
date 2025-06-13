@@ -11,7 +11,7 @@ async function createTestUsers() {
     senha: adminPassword,
     funcao: 'administrador',
   };
-  console.log('Usuário Administrador:', JSON.stringify(adminUser));
+  console.log('Usuário Administrador:', JSON.stringify({ nome: adminUser.nome, email: adminUser.email, funcao: adminUser.funcao }));
 
   // Usuário familiar
   const familiarPassword = await bcrypt.hash('familiar123', saltRounds);
@@ -21,7 +21,7 @@ async function createTestUsers() {
     senha: familiarPassword,
     funcao: 'familiar',
   };
-  console.log('Usuário Familiar:', JSON.stringify(familiarUser));
+  console.log('Usuário Familiar:', JSON.stringify({ nome: familiarUser.nome, email: familiarUser.email, funcao: familiarUser.funcao }));
 }
 
 createTestUsers();
