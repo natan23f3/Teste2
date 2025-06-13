@@ -54,7 +54,8 @@
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^3.3.6",
     "winston": "^3.11.0",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "lusca": "^1.7.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",
